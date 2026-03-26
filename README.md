@@ -40,4 +40,4 @@ jzf-skills/
 
 ## License
 
-Personal use.
+[MIT](LICENSE)
