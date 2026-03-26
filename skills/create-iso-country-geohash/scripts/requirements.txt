@@ -1,0 +1,2 @@
+shapely>=2.0.0,<3
+python-geohash>=0.8.5
