@@ -28,12 +28,20 @@ See [`skills/create-iso-country-geohash/SKILL.md`](skills/create-iso-country-geo
 
 ## Installation
 
+First, clone this repo to your local machine:
+
+```bash
+git clone https://github.com/jiazhanfeng1989/jzf-skills.git
+```
+
+Then pick one of the following methods to install a skill into your project.
+
 ### Option 1: Add as a Cursor IDE Skill
 
-Add the following entry to your project's `.cursor/skills/` configuration:
+Add the following entry to your project's `.cursor/skills/` configuration, replacing `<path-to-jzf-skills>` with the actual clone location:
 
 ```yaml
-- fullPath: /Users/zhfjia/jzf-skills/skills/create-iso-country-geohash/SKILL.md
+- fullPath: <path-to-jzf-skills>/skills/create-iso-country-geohash/SKILL.md
   description: Generate geohash.data and geohash.html from ISO country codes
 ```
 
@@ -42,14 +50,14 @@ Add the following entry to your project's `.cursor/skills/` configuration:
 Symlink the skill into your project's `.cursor/skills/` directory so it stays in sync automatically:
 
 ```bash
-ln -s /Users/zhfjia/jzf-skills/skills/create-iso-country-geohash \
+ln -s <path-to-jzf-skills>/skills/create-iso-country-geohash \
       your-project/.cursor/skills/create-iso-country-geohash
 ```
 
 ### Option 3: Copy
 
 ```bash
-cp -r /Users/zhfjia/jzf-skills/skills/create-iso-country-geohash \
+cp -r <path-to-jzf-skills>/skills/create-iso-country-geohash \
       your-project/.cursor/skills/create-iso-country-geohash
 ```
 
