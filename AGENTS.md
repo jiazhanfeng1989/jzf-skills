@@ -10,34 +10,13 @@ This repository contains reusable Agent Skills. Each skill lives under `skills/<
 
 ## How to Install a Skill
 
-### Cursor IDE
-
-1. Clone this repo:
+Clone this repo and copy the skill folder into your project's `.cursor/skills/` directory:
 
 ```bash
 git clone https://github.com/jiazhanfeng1989/jzf-skills.git
-```
 
-2. Open **Cursor Settings → Features → Docs & Skills** (or navigate to `.cursor/skills/` in your project).
-3. Add a skill entry pointing to the `SKILL.md` file, replacing `<path-to-jzf-skills>` with your clone location:
-
-```yaml
-- fullPath: <path-to-jzf-skills>/skills/create-iso-country-geohash/SKILL.md
-  description: Generate geohash.data and geohash.html from ISO country codes
-```
-
-### Codex / Other Agents
-
-Copy or symlink the skill folder into your project's `.cursor/skills/` directory:
-
-```bash
-# Symlink (recommended — stays in sync)
-ln -s <path-to-jzf-skills>/skills/create-iso-country-geohash \
-      .cursor/skills/create-iso-country-geohash
-
-# Or copy
-cp -r <path-to-jzf-skills>/skills/create-iso-country-geohash \
-      .cursor/skills/create-iso-country-geohash
+cp -r jzf-skills/skills/create-iso-country-geohash \
+      your-project/.cursor/skills/create-iso-country-geohash
 ```
 
 Then reference the skill in your agent configuration:
