@@ -7,6 +7,7 @@ This repository contains reusable Agent Skills. Each skill lives under `skills/<
 | Skill | Path | Description |
 |-------|------|-------------|
 | create-iso-country-geohash | `skills/create-iso-country-geohash/` | Generate geohash coverage data and interactive maps for one or more countries by ISO code |
+| filter-geohash-ids | `skills/filter-geohash-ids/` | Filter geohash id lists by duplicates, optional ISO country coverage, and conservative water/river removal |
 
 ## How to Install a Skill
 

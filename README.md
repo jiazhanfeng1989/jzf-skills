@@ -10,6 +10,12 @@ Generate geohash coverage data and an interactive Leaflet map from one or more I
 
 See [`skills/create-iso-country-geohash/SKILL.md`](skills/create-iso-country-geohash/SKILL.md) for full usage details.
 
+### filter-geohash-ids
+
+Filter arbitrary geohash id lists by duplicate ids, optional ISO country coverage, and conservative water/river removal.
+
+See [`skills/filter-geohash-ids/SKILL.md`](skills/filter-geohash-ids/SKILL.md) for full usage details.
+
 ## Installation
 
 Clone this repo and copy the skill into your project's `.cursor/skills/` directory:
@@ -19,6 +25,9 @@ git clone https://github.com/jiazhanfeng1989/jzf-skills.git
 
 cp -r jzf-skills/skills/create-iso-country-geohash \
       your-project/.cursor/skills/create-iso-country-geohash
+
+cp -r jzf-skills/skills/filter-geohash-ids \
+      your-project/.cursor/skills/filter-geohash-ids
 ```
 
 For agent configuration details, see [`AGENTS.md`](AGENTS.md).
@@ -30,12 +39,17 @@ jzf-skills/
 ├── AGENTS.md
 ├── README.md
 └── skills/
-    └── create-iso-country-geohash/
+    ├── create-iso-country-geohash/
+    │   ├── SKILL.md
+    │   └── scripts/
+    │       ├── requirements.txt
+    │       ├── generate_country_geohash.py
+    │       └── geohash_data_to_map.py
+    └── filter-geohash-ids/
         ├── SKILL.md
         └── scripts/
             ├── requirements.txt
-            ├── generate_country_geohash.py
-            └── geohash_data_to_map.py
+            └── filter_geohash_ids.py
 ```
 
 ## License
