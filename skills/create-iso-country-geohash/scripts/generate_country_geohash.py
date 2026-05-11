@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Generate geohash.data from one or more ISO country codes (alpha-2 or alpha-3).
-Downloads Natural Earth 110m GeoJSON (countries, ocean, lakes, rivers) into a local cache.
+Downloads Natural Earth GeoJSON (countries, ocean, lakes, rivers) into a local cache.
 
 Rules:
   - Default starting length 3; subdivide mixed land/water cells up to length 4 (overridable).
-  - Drop cells with no intersection with terrestrial (country minus water).
+  - Drop cells with no intersection with terrestrial area (country minus ocean/lakes/buffered rivers).
   - Multiple codes: merge geohash sets, dedupe, sort; default output file geohash.data.
   - Starting length and max split length: --base-level / --max-level (or --base-prec / --max-prec).
 """
@@ -37,17 +37,41 @@ NE_BASE = (
     "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
     "master/geojson"
 )
-NE_SOURCES = {
-    "countries": f"{NE_BASE}/ne_110m_admin_0_countries.geojson",
-    "ocean": f"{NE_BASE}/ne_110m_ocean.geojson",
-    "lakes": f"{NE_BASE}/ne_110m_lakes.geojson",
-    "rivers": f"{NE_BASE}/ne_110m_rivers_lake_centerlines.geojson",
+NE_LAYER_FILES = {
+    "countries": "admin_0_countries",
+    "ocean": "ocean",
+    "lakes": "lakes",
+    "rivers": "rivers_lake_centerlines",
+}
+NE_SCALES = {"10m", "50m", "110m"}
+DEFAULT_NE_SCALE = "10m"
+
+# Natural Earth can omit some small countries/territories or simplify small islands.
+# Keep bounding boxes for them so terrestrial generation does not drop valid areas.
+FALLBACK_COUNTRY_BBOX = {
+    "AD": (1.40, 42.42, 1.80, 42.68),
+    "AND": (1.40, 42.42, 1.80, 42.68),
+    "HK": (113.80, 22.10, 114.45, 22.60),
+    "HKG": (113.80, 22.10, 114.45, 22.60),
+    "LI": (9.45, 47.03, 9.66, 47.28),
+    "LIE": (9.45, 47.03, 9.66, 47.28),
+    "MO": (113.50, 22.08, 113.62, 22.24),
+    "MAC": (113.50, 22.08, 113.62, 22.24),
+    "MT": (14.15, 35.75, 14.60, 36.12),
+    "MLT": (14.15, 35.75, 14.60, 36.12),
+    "SG": (103.55, 1.15, 104.10, 1.50),
+    "SGP": (103.55, 1.15, 104.10, 1.50),
 }
 
 
 def default_cache_dir() -> Path:
     base = os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
     return Path(base) / "create-iso-country-geohash"
+
+
+def natural_earth_url(name: str, scale: str) -> str:
+    layer = NE_LAYER_FILES[name]
+    return f"{NE_BASE}/ne_{scale}_{layer}.geojson"
 
 
 def download(url: str, dest: Path) -> None:
@@ -67,11 +91,11 @@ def load_geojson(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
-def ensure_cached(name: str, cache_dir: Path) -> Path:
-    url = NE_SOURCES[name]
+def ensure_cached(name: str, cache_dir: Path, scale: str) -> Path:
+    url = natural_earth_url(name, scale)
     dest = cache_dir / Path(url).name
     if not dest.is_file():
-        print(f"Downloading {name} …", file=sys.stderr)
+        print(f"Downloading {scale} {name} …", file=sys.stderr)
         download(url, dest)
     return dest
 
@@ -113,8 +137,16 @@ def country_geometry(code: str, countries_path: Path):
             continue
         geoms.append(g)
     if not geoms:
+        fallback_bbox = FALLBACK_COUNTRY_BBOX.get(code)
+        if fallback_bbox is not None:
+            return box(*fallback_bbox)
         raise SystemExit(f"No country feature found for code {code!r} in Natural Earth.")
     return unary_union(geoms)
+
+
+def fallback_keep_geometry(codes: list[str]):
+    geoms = [box(*FALLBACK_COUNTRY_BBOX[code]) for code in codes if code in FALLBACK_COUNTRY_BBOX]
+    return unary_union(geoms) if geoms else Polygon()
 
 
 def load_polygon_union(path: Path):
@@ -365,6 +397,12 @@ def main() -> None:
         help="Cache for downloaded GeoJSON (default: XDG_CACHE_HOME or ~/.cache)",
     )
     ap.add_argument(
+        "--ne-scale",
+        choices=sorted(NE_SCALES),
+        default=DEFAULT_NE_SCALE,
+        help=f"Natural Earth detail scale (default: {DEFAULT_NE_SCALE}; 10m is safest for coastlines/islands).",
+    )
+    ap.add_argument(
         "--base-prec",
         "--base-level",
         dest="base_prec",
@@ -402,10 +440,10 @@ def main() -> None:
 
     cache = Path(args.cache_dir) if args.cache_dir else default_cache_dir()
 
-    countries_path = ensure_cached("countries", cache)
-    ocean_path = ensure_cached("ocean", cache)
-    lakes_path = ensure_cached("lakes", cache)
-    rivers_path = ensure_cached("rivers", cache)
+    countries_path = ensure_cached("countries", cache, args.ne_scale)
+    ocean_path = ensure_cached("ocean", cache, args.ne_scale)
+    lakes_path = ensure_cached("lakes", cache, args.ne_scale)
+    rivers_path = ensure_cached("rivers", cache, args.ne_scale)
 
     ocean = ensure_valid(load_polygon_union(ocean_path))
     lakes = ensure_valid(load_polygon_union(lakes_path))
@@ -416,6 +454,9 @@ def main() -> None:
     for label in codes:
         land = ensure_valid(country_geometry(label, countries_path))
         terrestrial = ensure_valid(land.difference(water))
+        fallback_keep = ensure_valid(fallback_keep_geometry([label]))
+        if not fallback_keep.is_empty:
+            terrestrial = ensure_valid(unary_union([terrestrial, fallback_keep]))
         part = geohashes_for_terrestrial(terrestrial, args.base_prec, args.max_prec)
         if not part:
             print(f"warning: no geohashes for {label} (empty after water clip?)", file=sys.stderr)

@@ -16,6 +16,20 @@ description: Create geohash.data and optional geohash.html from one or more ISO 
 
 Constraint: `1 ≤ base ≤ max ≤ 12`. Omit both flags for the usual “3 + split to 4” behaviour.
 
+**Natural Earth precision**
+
+| Flag | Meaning | Default |
+|------|---------|---------|
+| `--ne-scale` | Natural Earth GeoJSON scale: `10m`, `50m`, or `110m` | **10m** |
+
+Default `10m` avoids false removals around coastlines, islands, and reclaimed land. Coarser `50m`/`110m` runs faster but may miss small land features.
+
+**Water filtering**
+
+The generated geohash set is terrestrial only: the script subtracts Natural Earth ocean, lakes, and buffered rivers from the country geometry before generating cells.
+
+For small countries/territories and reclaimed/coastal land, the generator applies conservative fallback bounding boxes after water clipping for `SGP`, `HKG`, `MAC`, `MLT`, `AND`, and `LIE`, matching the region filter behavior.
+
 **Outputs** (default names, cwd or `--out-dir`):
 
 | File | Role |
@@ -34,12 +48,15 @@ python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --
 # example: start at 4 chars, split up to 6
 python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --iso IND --base-level 4 --max-level 6
 
+# optional: use coarser Natural Earth data
+python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --iso IND --ne-scale 50m
+
 # map (reads geohash.data by default → geohash.html)
 python3 skills/create-iso-country-geohash/scripts/geohash_data_to_map.py
 ```
 
-Other flags: `--out` / `--out-dir`; `--no-compact`; `geohash_data_to_map.py [path/to.data] -o other.html`.
+Other flags: `--out` / `--out-dir`; `--no-compact`; `--ne-scale`; `geohash_data_to_map.py [path/to.data] -o other.html`.
 
 **Agent**: uppercase codes; install deps; forward user-supplied `--base-level` / `--max-level` if any; run generator then map script; confirm `geohash.data` and `geohash.html` exist.
 
-**Caveats**: Alpha-3 uses `ADM0_A3`; alpha-2 uses `ISO_A2` / `WB_A2`. Rivers are approximated by buffered lines; 110m data is coarse.
+**Caveats**: Alpha-3 uses `ADM0_A3`; alpha-2 uses `ISO_A2` / `WB_A2`. Rivers are approximated by buffered lines. Default `10m` is more accurate but downloads larger Natural Earth files. Fallback boxes are intentionally conservative and may keep extra land/water-adjacent cells for small territories rather than risk dropping valid land.
