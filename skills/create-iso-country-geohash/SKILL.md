@@ -19,6 +19,9 @@ Generate terrestrial geohash coverage for ISO country codes.
 - Generates cells that intersect terrestrial country geometry after subtracting ocean and lakes.
 - River removal is off by default; enable it with `--river-buffer-deg`.
 - Deduplicates, sorts, and compacts complete 32-child geohash groups unless `--no-compact` is set.
+- First run downloads Natural Earth data into `~/.cache/create-iso-country-geohash`; later runs reuse the cache. Use `--cache-dir` for pre-downloaded/offline data.
+- Higher precision levels or large multi-country runs can be CPU and memory intensive.
+- Cache cleanup is manual; delete the cache directory when old downloads are no longer needed.
 
 ## Outputs
 

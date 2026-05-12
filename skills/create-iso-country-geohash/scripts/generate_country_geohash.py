@@ -69,6 +69,10 @@ def default_cache_dir() -> Path:
 
 
 def natural_earth_url(name: str, scale: str) -> str:
+    if scale not in NE_SCALES:
+        raise ValueError(f"invalid Natural Earth scale {scale!r}; expected one of {sorted(NE_SCALES)}")
+    if name not in NE_LAYER_FILES:
+        raise ValueError(f"invalid Natural Earth layer {name!r}; expected one of {sorted(NE_LAYER_FILES)}")
     layer = NE_LAYER_FILES[name]
     return f"{NE_BASE}/ne_{scale}_{layer}.geojson"
 
