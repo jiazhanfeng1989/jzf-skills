@@ -1,62 +1,45 @@
 ---
 name: create-iso-country-geohash
-description: Create geohash.data and optional geohash.html from one or more ISO country codes (alpha-2 or alpha-3, comma-separated). Script downloads Natural Earth 110m GeoJSON; configurable starting geohash length (default 3) and max split length for land/water (default 4); merges countries, dedupes, sorts, compacts full 32-sibling groups. Use for multi-country geohash lists and map preview without manual GIS files.
+description: Generate geohash.data and optional geohash.html for one or more ISO alpha-2/alpha-3 countries using Natural Earth data. Use when the user needs country geohash coverage or a quick map preview.
 ---
 
 # create-iso-country-geohash
 
-**Input**: One or more codes — **comma- or space-separated**, ISO **alpha-2** (`IN`, `DE`) or **alpha-3** / Natural Earth **`ADM0_A3`** (`IND`, `DEU`). Duplicate codes are ignored.
+Generate terrestrial geohash coverage for ISO country codes.
 
-**Geohash length (configurable)**
+## Inputs
 
-| Flag | Meaning | Default |
-|------|---------|---------|
-| `--base-level` / `--base-prec` `N` | Starting string length (number of base-32 characters) | **3** |
-| `--max-level` / `--max-prec` `N` | Maximum length when a cell is partly land and partly water (no finer splits) | **4** |
+- `--iso`: comma- or space-separated ISO alpha-2/alpha-3 codes, such as `IN,DE` or `IND DEU`.
+- Optional precision: `--base-level` and `--max-level` (defaults: `3` and `4`).
+- Optional data scale: `--ne-scale 10m|50m|110m` (default: `10m`).
 
-Constraint: `1 ≤ base ≤ max ≤ 12`. Omit both flags for the usual “3 + split to 4” behaviour.
+## Behavior
 
-**Natural Earth precision**
+- Downloads Natural Earth countries, ocean, lakes, and river centerlines into a cache.
+- Generates cells that intersect terrestrial country geometry after subtracting ocean and lakes.
+- River removal is off by default; enable it with `--river-buffer-deg`.
+- Deduplicates, sorts, and compacts complete 32-child geohash groups unless `--no-compact` is set.
 
-| Flag | Meaning | Default |
-|------|---------|---------|
-| `--ne-scale` | Natural Earth GeoJSON scale: `10m`, `50m`, or `110m` | **10m** |
+## Outputs
 
-Default `10m` avoids false removals around coastlines, islands, and reclaimed land. Coarser `50m`/`110m` runs faster but may miss small land features.
+- `geohash.data`: one geohash per line.
+- `geohash.html`: optional Leaflet preview generated from `geohash.data`.
 
-**Water filtering**
-
-The generated geohash set is terrestrial only: the script subtracts Natural Earth ocean, lakes, and buffered rivers from the country geometry before generating cells.
-
-For small countries/territories and reclaimed/coastal land, the generator applies conservative fallback bounding boxes after water clipping for `SGP`, `HKG`, `MAC`, `MLT`, `AND`, and `LIE`, matching the region filter behavior.
-
-**Outputs** (default names, cwd or `--out-dir`):
-
-| File | Role |
-|------|------|
-| `geohash.data` | UTF-8, one geohash per line, sorted; lengths between base and max (then **compact** may shorten where all 32 siblings exist) |
-| `geohash.html` | Leaflet map: grid + cell labels; **OpenStreetMap** tiles; load failures use a blank placeholder (hide OSM blocked graphic); `localhost` recommended for full tiles |
-
-**Run** (repo root):
+## Run
 
 ```bash
-python3 -m pip install -r skills/create-iso-country-geohash/scripts/requirements.txt
+SKILL_DIR=/path/to/create-iso-country-geohash
+python3 -m pip install -r "$SKILL_DIR/scripts/requirements.txt"
 
-# defaults: base 3, max 4
-python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --iso IND,DEU,FRA
-
-# example: start at 4 chars, split up to 6
-python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --iso IND --base-level 4 --max-level 6
-
-# optional: use coarser Natural Earth data
-python3 skills/create-iso-country-geohash/scripts/generate_country_geohash.py --iso IND --ne-scale 50m
-
-# map (reads geohash.data by default → geohash.html)
-python3 skills/create-iso-country-geohash/scripts/geohash_data_to_map.py
+python3 "$SKILL_DIR/scripts/generate_country_geohash.py" --iso IND,DEU,FRA
+python3 "$SKILL_DIR/scripts/generate_country_geohash.py" --iso IND --base-level 4 --max-level 6
+python3 "$SKILL_DIR/scripts/geohash_data_to_map.py"
 ```
 
-Other flags: `--out` / `--out-dir`; `--no-compact`; `--ne-scale`; `geohash_data_to_map.py [path/to.data] -o other.html`.
+Useful flags: `--out`, `--out-dir`, `--no-compact`, `--cache-dir`, `--ne-scale`, `--river-buffer-deg`.
 
-**Agent**: uppercase codes; install deps; forward user-supplied `--base-level` / `--max-level` if any; run generator then map script; confirm `geohash.data` and `geohash.html` exist.
+## Agent Notes
 
-**Caveats**: Alpha-3 uses `ADM0_A3`; alpha-2 uses `ISO_A2` / `WB_A2`. Rivers are approximated by buffered lines. Default `10m` is more accurate but downloads larger Natural Earth files. Fallback boxes are intentionally conservative and may keep extra land/water-adjacent cells for small territories rather than risk dropping valid land.
+- Use user-supplied precision and output paths when provided.
+- Generate the map only when requested or useful for preview.
+- Report output paths and geohash count.

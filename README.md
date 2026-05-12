@@ -6,7 +6,7 @@ A personal collection of Agent Skills — reusable automation capabilities for A
 
 ### create-iso-country-geohash
 
-Generate geohash coverage data and an interactive Leaflet map from one or more ISO country codes (alpha-2 or alpha-3). Uses Natural Earth 110m geodata with configurable geohash precision.
+Generate geohash coverage data and an interactive Leaflet map from one or more ISO country codes (alpha-2 or alpha-3). Uses Natural Earth geodata with configurable geohash precision.
 
 See [`skills/create-iso-country-geohash/SKILL.md`](skills/create-iso-country-geohash/SKILL.md) for full usage details.
 
@@ -18,19 +18,39 @@ See [`skills/filter-geohash-ids/SKILL.md`](skills/filter-geohash-ids/SKILL.md) f
 
 ## Installation
 
-Clone this repo and copy the skill into your project's `.cursor/skills/` directory:
+Clone this repo, then copy the skill folder to the place your agent loads skills from:
 
 ```bash
 git clone https://github.com/jiazhanfeng1989/jzf-skills.git
 
-cp -r jzf-skills/skills/create-iso-country-geohash \
-      your-project/.cursor/skills/create-iso-country-geohash
-
-cp -r jzf-skills/skills/filter-geohash-ids \
-      your-project/.cursor/skills/filter-geohash-ids
+mkdir -p your-project/.agent-skills
+cp -R jzf-skills/skills/create-iso-country-geohash your-project/.agent-skills/
+cp -R jzf-skills/skills/filter-geohash-ids your-project/.agent-skills/
 ```
 
-For agent configuration details, see [`AGENTS.md`](AGENTS.md).
+Use any directory your tool supports. Common options:
+
+```bash
+# Cursor native skills
+mkdir -p your-project/.cursor/skills
+cp -R jzf-skills/skills/create-iso-country-geohash your-project/.cursor/skills/
+cp -R jzf-skills/skills/filter-geohash-ids your-project/.cursor/skills/
+
+# Codex or other agents that read repo instructions
+mkdir -p your-project/.agent-skills
+cp -R jzf-skills/skills/create-iso-country-geohash your-project/.agent-skills/
+cp -R jzf-skills/skills/filter-geohash-ids your-project/.agent-skills/
+```
+
+For agents without native skill discovery, reference each `SKILL.md` from the project instruction file, such as `AGENTS.md`:
+
+```markdown
+Available skills:
+- create-iso-country-geohash: .agent-skills/create-iso-country-geohash/SKILL.md
+- filter-geohash-ids: .agent-skills/filter-geohash-ids/SKILL.md
+```
+
+For more details, see [`AGENTS.md`](AGENTS.md).
 
 ## Project Structure
 
@@ -49,7 +69,8 @@ jzf-skills/
         ├── SKILL.md
         └── scripts/
             ├── requirements.txt
-            └── filter_geohash_ids.py
+            ├── filter_geohash_ids.py
+            └── test_filter_geohash_ids.py
 ```
 
 ## License

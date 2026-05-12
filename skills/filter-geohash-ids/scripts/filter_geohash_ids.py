@@ -29,7 +29,7 @@ NE_LAYER_FILES = {
 NE_SCALES = {"10m", "50m", "110m"}
 DEFAULT_NE_SCALE = "10m"
 
-# Natural Earth can omit small territories or simplify reclaimed/coastal land.
+# Natural Earth can omit small countries or territories.
 FALLBACK_COUNTRY_BBOX = {
     "AD": (1.40, 42.42, 1.80, 42.68),
     "AND": (1.40, 42.42, 1.80, 42.68),
@@ -44,7 +44,6 @@ FALLBACK_COUNTRY_BBOX = {
     "SG": (103.55, 1.15, 104.10, 1.50),
     "SGP": (103.55, 1.15, 104.10, 1.50),
 }
-
 
 def default_cache_dir() -> Path:
     base = os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
@@ -187,7 +186,7 @@ def geohash_cell_polygon(code: str):
 
 
 def parse_geohash_ids(raw: str) -> list[str]:
-    # Supports quoted Go constants, comma-separated lists, whitespace lists, and plain line files.
+    # Supports quoted entries, comma-separated lists, whitespace lists, and plain line files.
     quoted = re.findall(r'"([^"]+)"', raw.lower())
     if quoted:
         tokens = [token.strip() for token in quoted if token.strip()]
@@ -244,11 +243,12 @@ def build_geometries(codes: list[str], cache_dir: Path, scale: str, river_buffer
     target_land_parts = [ensure_valid(country_geometry(code, countries_path)) for code in codes]
     target_land = ensure_valid(unary_union(target_land_parts))
     fallback_keep = ensure_valid(fallback_keep_geometry(codes))
-    if not fallback_keep.is_empty:
-        target_land = ensure_valid(unary_union([target_land, fallback_keep]))
+    keep_parts = [fallback_keep] if not fallback_keep.is_empty else []
+    if keep_parts:
+        target_land = ensure_valid(unary_union([target_land, *keep_parts]))
     target_terrestrial = ensure_valid(target_land.difference(water))
-    if not fallback_keep.is_empty:
-        target_terrestrial = ensure_valid(unary_union([target_terrestrial, fallback_keep]))
+    if keep_parts:
+        target_terrestrial = ensure_valid(unary_union([target_terrestrial, *keep_parts]))
     return world_land, world_terrestrial, target_land, target_terrestrial
 
 
@@ -354,7 +354,12 @@ def main() -> int:
         default=DEFAULT_NE_SCALE,
         help=f"Natural Earth detail scale (default: {DEFAULT_NE_SCALE})",
     )
-    parser.add_argument("--river-buffer-deg", type=float, default=0.012, help="river line buffer in WGS84 degrees")
+    parser.add_argument(
+        "--river-buffer-deg",
+        type=float,
+        default=0.0,
+        help="optional river line buffer in WGS84 degrees; default 0 avoids false removals near urban rivers",
+    )
     parser.add_argument("--sample-limit", type=int, default=20, help="number of removed ids to print")
     args = parser.parse_args()
     try:

@@ -5,7 +5,7 @@ Downloads Natural Earth GeoJSON (countries, ocean, lakes, rivers) into a local c
 
 Rules:
   - Default starting length 3; subdivide mixed land/water cells up to length 4 (overridable).
-  - Drop cells with no intersection with terrestrial area (country minus ocean/lakes/buffered rivers).
+  - Drop cells with no intersection with terrestrial area (country minus ocean/lakes by default).
   - Multiple codes: merge geohash sets, dedupe, sort; default output file geohash.data.
   - Starting length and max split length: --base-level / --max-level (or --base-prec / --max-prec).
 """
@@ -63,7 +63,6 @@ FALLBACK_COUNTRY_BBOX = {
     "SGP": (103.55, 1.15, 104.10, 1.50),
 }
 
-
 def default_cache_dir() -> Path:
     base = os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
     return Path(base) / "create-iso-country-geohash"
@@ -79,7 +78,7 @@ def download(url: str, dest: Path) -> None:
     tmp = dest.with_suffix(dest.suffix + ".part")
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "evplanner-create-iso-country-geohash/1.0"},
+        headers={"User-Agent": "jzf-create-iso-country-geohash/1.0"},
     )
     with urllib.request.urlopen(req, timeout=120) as resp:
         tmp.write_bytes(resp.read())
@@ -162,8 +161,10 @@ def load_polygon_union(path: Path):
     return unary_union(geoms)
 
 
-def load_rivers_buffered(path: Path, deg: float = 0.012):
+def load_rivers_buffered(path: Path, deg: float = 0.0):
     """Approximate river area by buffering line geometries in degrees (WGS84)."""
+    if deg <= 0:
+        return Polygon()
     data = load_geojson(path)
     geoms = []
     for feat in data.get("features", []):
@@ -425,6 +426,12 @@ def main() -> None:
         action="store_true",
         help="Skip post-pass that merges 32 full siblings back to one parent geohash",
     )
+    ap.add_argument(
+        "--river-buffer-deg",
+        type=float,
+        default=0.0,
+        help="optional river line buffer in WGS84 degrees; default 0 avoids false removals near urban rivers",
+    )
     args = ap.parse_args()
 
     if args.base_prec < 1 or args.base_prec > 12:
@@ -447,7 +454,7 @@ def main() -> None:
 
     ocean = ensure_valid(load_polygon_union(ocean_path))
     lakes = ensure_valid(load_polygon_union(lakes_path))
-    rivers = ensure_valid(load_rivers_buffered(rivers_path))
+    rivers = ensure_valid(load_rivers_buffered(rivers_path, args.river_buffer_deg))
     water = ensure_valid(unary_union([ocean, lakes, rivers]))
 
     merged: set[str] = set()
